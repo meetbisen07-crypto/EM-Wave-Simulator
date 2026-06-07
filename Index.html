@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EM Waves — Interactive Physics Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Syne+Mono&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{--bg:#030912;--bg2:#060f1e;--bg3:#0a1628;--panel:#0d1e35;--border:rgba(0,200,255,0.15);--cyan:#00d4ff;--magenta:#ff2d78;--green:#00ff9d;--yellow:#ffe84d;--text:#c8e0f8;--text2:#6a8faf;--white:#e8f4ff;--glow-c:0 0 20px rgba(0,212,255,0.5);--glow-g:0 0 20px rgba(0,255,157,0.5)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.6}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--cyan);border-radius:3px}
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(3,9,18,0.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:58px}
+.nav-logo{font-family:'Orbitron',monospace;font-size:.9rem;font-weight:900;color:var(--cyan);text-shadow:var(--glow-c);letter-spacing:3px}
+.nav-links{display:flex;gap:.2rem;list-style:none}
+.nav-links a{font-family:'Syne Mono',monospace;font-size:.63rem;letter-spacing:1px;color:var(--text2);text-decoration:none;padding:.3rem .7rem;border-radius:4px;border:1px solid transparent;transition:all .2s;text-transform:uppercase}
+.nav-links a:hover{color:var(--cyan);border-color:var(--border);background:rgba(0,212,255,0.07)}
+#hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:80px 2rem 4rem}
+#hero-canvas{position:absolute;inset:0;opacity:.35}
+.hero-content{position:relative;z-index:2;text-align:center;max-width:780px}
+.hero-tag{font-family:'Syne Mono',monospace;font-size:.7rem;letter-spacing:5px;color:var(--cyan);text-transform:uppercase;margin-bottom:1.2rem;opacity:0;animation:fadeUp .8s .2s forwards}
+.hero-title{font-family:'Orbitron',monospace;font-size:clamp(2.4rem,6vw,5rem);font-weight:900;line-height:1.05;color:var(--white);margin-bottom:1.4rem;opacity:0;animation:fadeUp .8s .4s forwards}
+.hero-title span{color:var(--cyan);text-shadow:var(--glow-c)}
+.hero-sub{font-size:1.05rem;color:var(--text2);max-width:540px;margin:0 auto 2.2rem;opacity:0;animation:fadeUp .8s .6s forwards}
+.hero-eq{font-family:'Syne Mono',monospace;font-size:1.5rem;color:var(--green);background:rgba(0,255,157,0.07);border:1px solid rgba(0,255,157,0.25);padding:.85rem 2.5rem;border-radius:8px;display:inline-block;margin-bottom:2.5rem;opacity:0;animation:fadeUp .8s .8s forwards;text-shadow:var(--glow-g)}
+.hero-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeUp .8s 1s forwards}
+.btn{font-family:'Syne Mono',monospace;font-size:.78rem;letter-spacing:2px;padding:.8rem 2rem;border-radius:6px;border:none;cursor:pointer;text-transform:uppercase;text-decoration:none;transition:all .25s;display:inline-block}
+.btn-primary{background:var(--cyan);color:var(--bg);font-weight:700;box-shadow:var(--glow-c)}
+.btn-primary:hover{background:#fff;transform:translateY(-2px)}
+.btn-ghost{background:transparent;color:var(--cyan);border:1px solid rgba(0,212,255,.4)}
+.btn-ghost:hover{background:rgba(0,212,255,.09);transform:translateY(-2px)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+.sec{padding:5rem 2rem;max-width:1200px;margin:0 auto}
+.sec-header{margin-bottom:2.8rem}
+.sec-tag{font-family:'Syne Mono',monospace;font-size:.68rem;letter-spacing:4px;text-transform:uppercase;color:var(--cyan);margin-bottom:.5rem}
+.sec-title{font-family:'Orbitron',monospace;font-size:clamp(1.5rem,3vw,2.3rem);font-weight:700;color:var(--white);line-height:1.2}
+.sec-title span{color:var(--cyan)}
+.sec-desc{color:var(--text2);margin-top:.7rem;max-width:580px;font-size:.95rem}
+.sep{width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.25),transparent)}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.5rem}
+.sg{margin-bottom:1.1rem}
+.sg label{display:flex;justify-content:space-between;align-items:center;font-family:'Syne Mono',monospace;font-size:.75rem;color:var(--text2);margin-bottom:.45rem}
+.sg label span{color:var(--cyan)}
+input[type=range]{width:100%;height:4px;border-radius:2px;-webkit-appearance:none;appearance:none;background:linear-gradient(90deg,var(--cyan) var(--pct,50%),var(--bg3) 0);cursor:pointer;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--cyan);box-shadow:var(--glow-c);cursor:pointer}
+.sim-layout{display:grid;grid-template-columns:1fr 290px;gap:1.5rem;align-items:start}
+#sim-canvas{width:100%;border-radius:10px;border:1px solid var(--border);background:var(--bg2)}
+.sim-controls h3{font-family:'Orbitron',monospace;font-size:.82rem;color:var(--cyan);margin-bottom:1.1rem;letter-spacing:2px}
+.legend{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.4rem}
+.leg{display:flex;align-items:center;gap:.6rem;font-size:.82rem}
+.leg-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.play-btn{width:100%;padding:.75rem;border-radius:8px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.35);color:var(--cyan);font-family:'Syne Mono',monospace;font-size:.8rem;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.play-btn:hover{background:rgba(0,212,255,.18)}
+.eq-box{margin-top:1.2rem;background:rgba(0,255,157,.05);border:1px solid rgba(0,255,157,.18);border-radius:8px;padding:1rem;text-align:center;font-family:'Syne Mono',monospace;font-size:.95rem;color:var(--green);text-shadow:var(--glow-g)}
+.prop-layout{display:grid;grid-template-columns:1fr 255px;gap:1.5rem;align-items:start}
+#prop-canvas{width:100%;border-radius:10px;border:1px solid var(--border);background:var(--bg2)}
+.mode-btn{padding:.65rem .9rem;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:'Syne Mono',monospace;font-size:.72rem;letter-spacing:1px;cursor:pointer;transition:all .2s;text-transform:uppercase;text-align:left;width:100%;margin-bottom:.5rem}
+.mode-btn:hover{border-color:rgba(0,212,255,.4);color:var(--cyan)}
+.mode-btn.active{background:rgba(0,212,255,.1);border-color:var(--cyan);color:var(--cyan)}
+.prop-info{font-size:.8rem;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-top:.5rem;line-height:1.8}
+.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:1.1rem;margin-bottom:1.5rem}
+.app-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.5rem;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.app-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--cc,var(--cyan));transform:scaleX(0);transform-origin:left;transition:transform .3s}
+.app-card:hover{transform:translateY(-4px);border-color:rgba(0,212,255,.35)}
+.app-card:hover::before{transform:scaleX(1)}
+.app-emoji{font-size:2.4rem;margin-bottom:.75rem;display:block}
+.app-title{font-family:'Orbitron',monospace;font-size:.82rem;color:var(--white);margin-bottom:.3rem;letter-spacing:1px}
+.app-sub{font-size:.8rem;color:var(--text2)}
+.app-detail h3{font-family:'Orbitron',monospace;font-size:1rem;color:var(--cyan);margin-bottom:.9rem}
+.app-detail p{color:var(--text2);line-height:1.8;font-size:.93rem;margin-bottom:.7rem}
+.maxwell-layout{display:grid;grid-template-columns:2fr 1fr;gap:2.5rem;align-items:start}
+.timeline{position:relative;padding-left:2.5rem}
+.timeline::before{content:'';position:absolute;left:.6rem;top:0;bottom:0;width:1px;background:linear-gradient(180deg,var(--cyan),var(--magenta))}
+.tl-item{position:relative;margin-bottom:2.5rem}
+.tl-dot{position:absolute;left:-2.35rem;width:14px;height:14px;border-radius:50%;border:2px solid var(--cyan);background:var(--bg);top:3px}
+.tl-dot.mag{border-color:var(--magenta)}
+.tl-year{font-family:'Syne Mono',monospace;font-size:.75rem;color:var(--cyan);letter-spacing:2px;margin-bottom:.3rem}
+.tl-year.mag{color:var(--magenta)}
+.tl-title{font-family:'Orbitron',monospace;font-size:.95rem;color:var(--white);margin-bottom:.4rem;font-weight:600}
+.tl-body{color:var(--text2);font-size:.9rem;line-height:1.7}
+.maxwell-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:2rem;text-align:center;position:sticky;top:80px}
+.maxwell-icon{font-size:6rem;margin-bottom:1rem;display:block}
+.maxwell-name{font-family:'Orbitron',monospace;font-size:1.1rem;color:var(--cyan);font-weight:700;margin-bottom:.3rem}
+.maxwell-dates{font-family:'Syne Mono',monospace;font-size:.75rem;color:var(--text2);letter-spacing:2px;margin-bottom:1.2rem}
+.eq-scroll{display:flex;flex-direction:column;gap:.7rem}
+.mx-eq{font-family:'Syne Mono',monospace;font-size:.85rem;color:var(--green);background:rgba(0,255,157,.06);border:1px solid rgba(0,255,157,.18);border-radius:6px;padding:.6rem 1rem;text-shadow:var(--glow-g)}
+#wave3d-wrap{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:#060f1e;height:500px}
+#wave3d{width:100%;height:100%;display:block;cursor:grab}
+#wave3d:active{cursor:grabbing}
+.wave3d-hud{position:absolute;top:16px;left:16px;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+.hud-item{font-family:'Syne Mono',monospace;font-size:.72rem;letter-spacing:1px;padding:.35rem .8rem;border-radius:4px}
+.hud-e{background:rgba(0,0,0,.6);border:1px solid rgba(0,212,255,.4);color:#00d4ff}
+.hud-b{background:rgba(0,0,0,.6);border:1px solid rgba(255,45,120,.4);color:#ff2d78}
+.hud-dir{background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5)}
+.wave3d-controls{display:flex;justify-content:center;gap:.8rem;margin-top:1.2rem;flex-wrap:wrap}
+.w3btn{font-family:'Syne Mono',monospace;font-size:.75rem;letter-spacing:1px;padding:.6rem 1.4rem;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .2s;text-transform:uppercase}
+.w3btn:hover{border-color:rgba(0,212,255,.4);color:var(--cyan)}
+.w3btn.on{background:rgba(0,212,255,.1);border-color:var(--cyan);color:var(--cyan)}
+.w3btn.on-b{background:rgba(255,45,120,.1);border-color:var(--magenta);color:var(--magenta)}
+footer{text-align:center;padding:3rem 2rem;border-top:1px solid var(--border);font-family:'Syne Mono',monospace;font-size:.72rem;color:var(--text2);letter-spacing:2px}
+footer span{color:var(--cyan)}
+@media(max-width:768px){.sim-layout,.prop-layout,.maxwell-layout{grid-template-columns:1fr}.nav-links{display:none}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo">⚡ EM WAVES</div>
+  <ul class="nav-links">
+    <li><a href="#wave3d-sec">3D Wave</a></li>
+    <li><a href="#simulator">Simulator</a></li>
+    <li><a href="#propagation">Propagation</a></li>
+    <li><a href="#applications">Applications</a></li>
+  </ul>
+</nav>
+
+<section id="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-content">
+    <p class="hero-tag">Interactive Physics Explorer</p>
+    <h1 class="hero-title">Electromagnetic<br><span>Waves</span> Unveiled</h1>
+    <p class="hero-sub">Explore, simulate, and visualize the science behind light, radio, X-rays, and everything in between.</p>
+    <div class="hero-eq">c = f &middot; &lambda; &nbsp;=&nbsp; 3 &times; 10&sup8; m/s</div>
+    <div class="hero-btns">
+      <a href="#wave3d-sec" class="btn btn-primary">Start Exploring</a>
+      <a href="#simulator" class="btn btn-ghost">Wave Simulator</a>
+    </div>
+  </div>
+</section>
+<div class="sep"></div>
+
+<div class="sec" id="wave3d-sec">
+  <div class="sec-header">
+    <p class="sec-tag">Feature 01</p>
+    <h2 class="sec-title">3D Wave <span>Visualization</span></h2>
+    <p class="sec-desc">Interactive 3D &mdash; E field (cyan, Y-axis) and B field (magenta, Z-axis) oscillate perpendicularly as the wave propagates along X. <strong style="color:var(--cyan)">Drag to rotate &middot; Scroll to zoom</strong></p>
+  </div>
+  <div id="wave3d-wrap">
+    <canvas id="wave3d"></canvas>
+    <div class="wave3d-hud">
+      <div class="hud-item hud-e">&#9679; Electric Field E &mdash; Y axis</div>
+      <div class="hud-item hud-b">&#9679; Magnetic Field B &mdash; Z axis</div>
+      <div class="hud-item hud-dir">&rarr; Propagation: X axis</div>
+    </div>
+  </div>
+  <div class="wave3d-controls">
+    <button class="w3btn on" id="btn-play" onclick="w3Toggle()">&#9208; Pause</button>
+    <button class="w3btn on" id="btn-e" onclick="w3ToggleE()">E-Field ON</button>
+    <button class="w3btn on-b" id="btn-b" onclick="w3ToggleB()">B-Field ON</button>
+    <button class="w3btn" onclick="w3Reset()">&#8635; Reset View</button>
+  </div>
+</div>
+<div class="sep"></div>
+
+<div class="sec" id="simulator">
+  <div class="sec-header">
+    <p class="sec-tag">Feature 02</p>
+    <h2 class="sec-title">EM Wave <span>Simulator</span></h2>
+    <p class="sec-desc">Visualize electric and magnetic fields oscillating perpendicularly. Adjust frequency, wavelength, and amplitude in real-time.</p>
+  </div>
+  <div class="sim-layout">
+    <canvas id="sim-canvas" width="800" height="320"></canvas>
+    <div class="panel sim-controls">
+      <h3>Controls</h3>
+      <div class="legend">
+        <div class="leg"><div class="leg-dot" style="background:#00d4ff;box-shadow:0 0 8px #00d4ff80"></div>Electric Field (E)</div>
+        <div class="leg"><div class="leg-dot" style="background:#ff2d78;box-shadow:0 0 8px #ff2d7880"></div>Magnetic Field (B)</div>
+        <div class="leg"><div class="leg-dot" style="background:#ffe84d;box-shadow:0 0 8px #ffe84d80"></div>Propagation &rarr;</div>
+      </div>
+      <div class="sg"><label>Frequency <span id="freq-val">2.0 Hz</span></label><input type="range" id="freq-sl" min="0.5" max="5" step="0.1" value="2"></div>
+      <div class="sg"><label>Wavelength <span id="wl-val">1.0</span></label><input type="range" id="wl-sl" min="0.5" max="3" step="0.1" value="1"></div>
+      <div class="sg"><label>Amplitude <span id="amp-val">1.0</span></label><input type="range" id="amp-sl" min="0.3" max="1.5" step="0.05" value="1"></div>
+      <button class="play-btn" id="play-btn">&#9208; Pause</button>
+      <div class="eq-box" id="sim-eq">c = 2.0 &times; 1.0 = 2.0</div>
+    </div>
+  </div>
+</div>
+<div class="sep"></div>
+
+<div class="sec" id="propagation">
+  <div class="sec-header">
+    <p class="sec-tag">Feature 03</p>
+    <h2 class="sec-title">Wave <span>Propagation</span></h2>
+    <p class="sec-desc">See how EM waves behave in vacuum, dense media, and at boundaries.</p>
+  </div>
+  <div class="prop-layout">
+    <canvas id="prop-canvas" width="720" height="340"></canvas>
+    <div>
+      <div style="font-family:'Syne Mono',monospace;font-size:.68rem;color:var(--text2);letter-spacing:3px;text-transform:uppercase;margin-bottom:.8rem">Mode</div>
+      <button class="mode-btn active" onclick="setPropMode('vacuum',this)">&#127756; Vacuum</button>
+      <button class="mode-btn" onclick="setPropMode('material',this)">&#128311; Dense Medium</button>
+      <button class="mode-btn" onclick="setPropMode('reflection',this)">&#129455; Reflection</button>
+      <button class="mode-btn" onclick="setPropMode('refraction',this)">&#128167; Refraction</button>
+      <div class="prop-info" id="prop-info"><strong style="color:var(--cyan)">Vacuum</strong><br>Wave travels at c = 3&times;10&sup8; m/s with no attenuation. All EM waves travel at the same speed in vacuum regardless of frequency.</div>
+    </div>
+  </div>
+</div>
+<div class="sep"></div>
+
+<div class="sec" id="applications">
+  <div class="sec-header">
+    <p class="sec-tag">Feature 04</p>
+    <h2 class="sec-title">Real-Life <span>Applications</span></h2>
+    <p class="sec-desc">Click a card to discover how electromagnetic waves power the modern world.</p>
+  </div>
+  <div class="apps-grid" id="apps-grid"></div>
+  <div class="panel app-detail" id="app-detail" style="display:none"></div>
+</div>
+<div class="sep"></div>
+
+<footer>
+  <p>⚡ <span>Electromagnetic Waves</span> &mdash; Interactive Physics Explorer</p>
+  <p style="margin-top:1rem;font-family:'Syne Mono',monospace;font-size:0.8rem;color:var(--text2);letter-spacing:1px">NS-1004 &mdash; Physics II</p>
+  <div style="display:flex;justify-content:center;gap:6rem;flex-wrap:wrap;margin-top:1.2rem">
+    <div style="text-align:center">
+      <div style="font-family:'Orbitron',monospace;font-size:1.2rem;color:var(--white)">Aaryaveer Singh</div>
+      <div style="font-family:'Syne Mono',monospace;font-size:1rem;color:var(--text2);margin-top:.2rem">25BEC001</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-family:'Orbitron',monospace;font-size:1.2rem;color:var(--white)">Meet Bisen</div>
+      <div style="font-family:'Syne Mono',monospace;font-size:1rem;color:var(--text2);margin-top:.2rem">25BEC060</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-family:'Orbitron',monospace;font-size:1.2rem;color:var(--white)">Adarsh Deshmukh</div>
+      <div style="font-family:'Syne Mono',monospace;font-size:1rem;color:var(--text2);margin-top:.2rem">25BEC004</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('input[type=range]').forEach(function(s){
+  var u=function(){s.style.setProperty('--pct',100*(s.value-s.min)/(s.max-s.min)+'%')};
+  s.addEventListener('input',u);u();
+});
+
+(function(){
+  var c=document.getElementById('hero-canvas'),ctx=c.getContext('2d'),W,H,P=[];
+  var resize=function(){W=c.width=innerWidth;H=c.height=innerHeight;P=[];for(var i=0;i<70;i++)P.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4})};
+  resize();addEventListener('resize',resize);
+  (function draw(){
+    ctx.clearRect(0,0,W,H);
+    P.forEach(function(p){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1});
+    P.forEach(function(p,i){
+      P.slice(i+1).forEach(function(q){var d=Math.hypot(p.x-q.x,p.y-q.y);if(d<130){ctx.strokeStyle='rgba(0,212,255,'+(1-d/130)*.2+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke()}});
+      ctx.fillStyle='rgba(0,212,255,.55)';ctx.beginPath();ctx.arc(p.x,p.y,1.5,0,6.28);ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  })();
+})();
+
+(function(){
+  var cv=document.getElementById('sim-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,mid=H/2;
+  var freq=2,wl=1,amp=1,t=0,running=true;
+  (function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
+    for(var x=0;x<=W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+    for(var y=0;y<=H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+    ctx.strokeStyle='rgba(255,228,77,.3)';ctx.lineWidth=1.5;ctx.setLineDash([6,8]);
+    ctx.beginPath();ctx.moveTo(0,mid);ctx.lineTo(W,mid);ctx.stroke();ctx.setLineDash([]);
+    var A=amp*105,k=2*Math.PI/(wl*105),w=freq*2*Math.PI;
+    ctx.shadowColor='#00d4ff';ctx.shadowBlur=14;ctx.strokeStyle='#00d4ff';ctx.lineWidth=2.8;ctx.beginPath();
+    for(var x=0;x<W;x++){var y=mid+A*Math.sin(k*x-w*t);x===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.stroke();
+    ctx.shadowColor='#ff2d78';ctx.strokeStyle='#ff2d78';ctx.lineWidth=2.2;ctx.setLineDash([8,5]);ctx.beginPath();
+    for(var x=0;x<W;x++){var y=mid+A*.55*Math.cos(k*x-w*t);x===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.stroke();
+    ctx.setLineDash([]);ctx.shadowBlur=0;
+    var wlPx=wl*105;
+    ctx.strokeStyle='rgba(255,228,77,.6)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(60,mid-A-24);ctx.lineTo(60+wlPx,mid-A-24);ctx.stroke();
+    ctx.fillStyle='#ffe84d';ctx.font='bold 12px Syne Mono,monospace';ctx.textAlign='center';ctx.fillText('λ',60+wlPx/2,mid-A-29);
+    ctx.textAlign='left';ctx.fillStyle='#00d4ff';ctx.fillText('E',8,24);
+    ctx.fillStyle='#ff2d78';ctx.fillText('B',8,44);
+    ctx.fillStyle='rgba(255,228,77,.7)';ctx.fillText('→ c',W-52,mid-10);
+    if(running)t+=0.016;
+    requestAnimationFrame(draw);
+  })();
+  var upEq=function(){document.getElementById('sim-eq').textContent='c = '+freq.toFixed(1)+' × '+wl.toFixed(1)+' = '+(freq*wl).toFixed(2)};
+  document.getElementById('freq-sl').addEventListener('input',function(){freq=+this.value;document.getElementById('freq-val').textContent=freq.toFixed(1)+' Hz';upEq()});
+  document.getElementById('wl-sl').addEventListener('input',function(){wl=+this.value;document.getElementById('wl-val').textContent=wl.toFixed(1);upEq()});
+  document.getElementById('amp-sl').addEventListener('input',function(){amp=+this.value;document.getElementById('amp-val').textContent=amp.toFixed(2)});
+  document.getElementById('play-btn').addEventListener('click',function(){running=!running;this.textContent=running?'⏸ Pause':'▶ Play'});
+  upEq();
+})();
+
+var propMode='vacuum',propT=0;
+(function(){
+  var cv=document.getElementById('prop-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,mid=H/2;
+  var propData={
+    vacuum:{c:'#00d4ff',t:'Vacuum',d:'Wave travels at c = 3×10⁸ m/s with no attenuation. All EM waves travel at the same speed in vacuum regardless of frequency.'},
+    material:{c:'#00ff9d',t:'Dense Medium (Glass, n=1.5)',d:'In a denser medium the wave slows to c/n. Frequency stays the same but wavelength decreases. Notice the compressed wavelength in glass.'},
+    reflection:{c:'#ffe84d',t:'Reflection',d:'When the wave hits a perfect conductor it bounces back. Incident and reflected waves superpose, forming a standing wave with fixed nodes.'},
+    refraction:{c:'#ff8c1a',t:'Refraction — Snell\'s Law',d:'At a media boundary the wave changes direction. n₁ sinθ₁ = n₂ sinθ₂. The wave bends toward the normal in a denser medium.'}
+  };
+  window.setPropMode=function(m,btn){
+    propMode=m;
+    document.querySelectorAll('.mode-btn').forEach(function(b){b.classList.remove('active')});
+    btn.classList.add('active');
+    var d=propData[m];
+    document.getElementById('prop-info').innerHTML='<strong style="color:'+d.c+'">'+d.t+'</strong><br>'+d.d;
+  };
+  function rayWave(x1,y1,x2,y2,freq,t,color,amp){
+    var dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);if(!len)return;
+    var ux=dx/len,uy=dy/len,nx=-uy,ny=ux;
+    ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.beginPath();
+    for(var i=0;i<=len;i++){var a=amp*Math.sin((i/45)*2*Math.PI-t*freq);i===0?ctx.moveTo(x1+ux*i+nx*a,y1+uy*i+ny*a):ctx.lineTo(x1+ux*i+nx*a,y1+uy*i+ny*a)}ctx.stroke();
+  }
+  (function draw(){
+    ctx.clearRect(0,0,W,H);
+    if(propMode==='vacuum'){
+      ctx.shadowColor='#00d4ff';ctx.shadowBlur=10;ctx.strokeStyle='#00d4ff';ctx.lineWidth=2.8;ctx.beginPath();
+      for(var x=0;x<W;x++){var y=mid+88*Math.sin((x/65)*2*Math.PI-propT*3);x===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.stroke();ctx.shadowBlur=0;
+      ctx.fillStyle='rgba(0,212,255,.6)';ctx.font='11px Syne Mono,monospace';ctx.fillText('c = 3×10⁸ m/s  →  all EM waves, same speed',10,22);
+    } else if(propMode==='material'){
+      var bnd=W/2;
+      ctx.fillStyle='rgba(0,100,200,.09)';ctx.fillRect(bnd,0,W-bnd,H);
+      ctx.strokeStyle='rgba(100,200,255,.25)';ctx.lineWidth=1;ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(bnd,0);ctx.lineTo(bnd,H);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='rgba(255,255,255,.25)';ctx.font='11px Syne Mono,monospace';ctx.fillText('Air  (n=1.0)',10,22);ctx.fillText('Glass (n=1.5)',bnd+10,22);
+      ctx.shadowColor='#00d4ff';ctx.shadowBlur=10;ctx.strokeStyle='#00d4ff';ctx.lineWidth=2.5;ctx.beginPath();
+      for(var x=0;x<bnd;x++){var y=mid+80*Math.sin((x/55)*2*Math.PI-propT*2.5);x===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.stroke();
+      ctx.shadowColor='#00ff9d';ctx.strokeStyle='#00ff9d';ctx.lineWidth=2.5;ctx.beginPath();
+      for(var x=bnd;x<W;x++){var y=mid+80*Math.sin((x/37)*2*Math.PI-propT*2.5);x===bnd?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.stroke();ctx.shadowBlur=0;
+    } else if(propMode==='reflection'){
+      var wall=W-55;
+      ctx.fillStyle='rgba(255,228,77,.07)';ctx.fillRect(wall,0,W-wall,H);
+      ctx.strokeStyle='rgba(255,228,77,.7)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(wall,0);ctx.lineTo(wall,H);ctx.stroke();
+      ctx.fillStyle='rgba(255,228,77,.9)';ctx.font='bold 11px Syne Mono,monospace';ctx.fillText('REFLECTOR',wall-90,18);
+      ctx.shadowColor='#00d4ff';ctx.shadowBlur=8;ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;ctx.beginPath();
+      for(var x=0;x<wall;x++){var y=mid+70*Math.sin((x/55)*2*Math.PI-propT*2.5);x===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.stroke();
+      ctx.shadowColor='#ff2d78';ctx.strokeStyle='rgba(255,45,120,.75)';ctx.lineWidth=2;ctx.beginPath();
+      for(var x=0;x<wall;x++){var y=mid+70*Math.sin((x/55)*2*Math.PI+propT*2.5);x===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.stroke();ctx.shadowBlur=0;
+      ctx.fillStyle='#00d4ff';ctx.font='11px Syne Mono,monospace';ctx.fillText('incident →',10,mid-95);
+      ctx.fillStyle='#ff2d78';ctx.fillText('← reflected',10,mid+108);
+    } else if(propMode==='refraction'){
+      var bnd=W/2,mY=H/2;
+      ctx.fillStyle='rgba(0,80,150,.15)';ctx.fillRect(bnd,0,W-bnd,H);
+      ctx.strokeStyle='rgba(0,150,255,.25)';ctx.lineWidth=1;ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(bnd,0);ctx.lineTo(bnd,H);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='rgba(255,255,255,.25)';ctx.font='11px Syne Mono,monospace';ctx.fillText('n₁ (air)',10,20);ctx.fillText('n₂ (glass)',bnd+10,20);
+      ctx.shadowBlur=12;
+      rayWave(80,mY-140,bnd,mY,2.5,propT,'#00d4ff',11);
+      rayWave(bnd,mY,W-60,mY+120,2.5,propT,'#ff8c1a',8);
+      ctx.shadowBlur=0;
+      ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='10px Syne Mono,monospace';ctx.textAlign='center';
+      ctx.fillText('n₁·sinθ₁ = n₂·sinθ₂',W/2,H-12);ctx.textAlign='left';
+    }
+    propT+=0.016;requestAnimationFrame(draw);
+  })();
+})();
+
+(function(){
+  var APPS=[
+    {emoji:'📡',title:'Satellite Comm',sub:'GPS · Broadcast · Internet',color:'#00d4ff',h:'Satellite Communication',p1:'Satellites in geostationary orbit (36,000 km) relay TV, phone calls, and internet data using microwave frequencies of 1–40 GHz. GPS receivers triangulate position from signals sent by at least 4 satellites simultaneously.',p2:'Modern LEO constellations like Starlink orbit at ~550 km, reducing signal latency to under 20 ms — fast enough for real-time communication.'},
+    {emoji:'📶',title:'Wi-Fi & 5G',sub:'Wireless networking',color:'#00ff9d',h:'Wi-Fi & 5G Networks',p1:'Wi-Fi operates at 2.4 GHz and 5 GHz microwave bands. Your router converts electrical signals into EM waves that travel through walls and air to reach your devices.',p2:'5G uses millimeter waves (24–100 GHz) for speeds up to 10 Gbps. Smaller wavelengths carry more data per second but have shorter range, requiring more base stations.'},
+    {emoji:'🩻',title:'Medical X-Rays',sub:'Diagnostic imaging',color:'#4488ff',h:'Medical X-Ray Imaging',p1:'X-rays (0.01–10 nm) penetrate soft tissue but are absorbed by calcium-dense bone. A detector captures differential transmission to produce shadow images of the skeleton.',p2:'CT scans rotate an X-ray source around the patient, taking hundreds of 2D slices that computers reconstruct into detailed 3D cross-sections of organs and tumors.'},
+    {emoji:'🌞',title:'Solar Radiation',sub:'Energy · Climate · Life',color:'#ffe84d',h:'Solar Electromagnetic Radiation',p1:'The Sun emits across the full EM spectrum: ~44% visible light, ~48% infrared, ~8% UV. Solar panels convert photons into electricity via the photovoltaic effect.',p2:"Earth's atmosphere absorbs most UV (ozone layer) and much IR (greenhouse gases). This keeps Earth ~33°C warmer than otherwise — making life possible."},
+    {emoji:'📱',title:'Mobile Networks',sub:'4G LTE · 5G · Cell towers',color:'#ff8c1a',h:'Mobile Network Technology',p1:'Smartphones communicate with cell towers using radio waves at 700 MHz–2.6 GHz for 4G LTE. Voice and data are encoded using OFDM modulation across hexagonal cells.',p2:'5G base stations use Massive MIMO — arrays of 64–256 antennas — to beamform signals directly toward individual devices, dramatically increasing urban capacity.'},
+    {emoji:'🔬',title:'Spectroscopy',sub:'Chemistry · Astronomy · MRI',color:'#cc44ff',h:'Spectroscopic Analysis',p1:'Every element absorbs and emits EM radiation at unique wavelengths. Astronomers identify the composition of stars billions of light-years away by analyzing their light spectrum.',p2:'Medical MRI uses radio waves in a strong magnetic field to excite hydrogen protons in tissue, mapping water distribution to produce high-contrast images — with zero ionizing radiation.'},
+  ];
+  var grid=document.getElementById('apps-grid'),detail=document.getElementById('app-detail'),active=null;
+  APPS.forEach(function(a,i){
+    var card=document.createElement('div');card.className='app-card';card.style.setProperty('--cc',a.color);
+    card.innerHTML='<span class="app-emoji">'+a.emoji+'</span><div class="app-title">'+a.title+'</div><div class="app-sub">'+a.sub+'</div>';
+    card.addEventListener('click',function(){
+      if(active===i){active=null;detail.style.display='none';return}
+      active=i;detail.innerHTML='<h3>'+a.h+'</h3><p>'+a.p1+'</p><p>'+a.p2+'</p>';
+      detail.style.display='block';
+      setTimeout(function(){detail.scrollIntoView({behavior:'smooth',block:'nearest'})},60);
+    });
+    grid.appendChild(card);
+  });
+})();
+
+window.addEventListener('load', function(){
+  if(typeof THREE==='undefined'){
+    document.getElementById('wave3d-wrap').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text2);font-family:Syne Mono,monospace;font-size:.9rem">Three.js unavailable. Check network connection.</div>';
+    return;
+  }
+
+  var wrap=document.getElementById('wave3d-wrap');
+  var canvas=document.getElementById('wave3d');
+  var W=wrap.clientWidth||900,H=500;
+
+  var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(W,H);
+  renderer.setClearColor(0x060f1e,1);
+
+  var scene=new THREE.Scene();
+  var camera=new THREE.PerspectiveCamera(50,W/H,0.01,500);
+  camera.position.set(5,5,11);
+  camera.lookAt(0,0,0);
+
+  var gridHelper=new THREE.GridHelper(18,18,0x0d2a4a,0x0d2a4a);
+  gridHelper.position.y=-0.01;
+  scene.add(gridHelper);
+
+  function axLine(p1,p2,color,opacity){
+    var g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p1[0],p1[1],p1[2]),new THREE.Vector3(p2[0],p2[1],p2[2])]);
+    scene.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:color,transparent:true,opacity:opacity||0.35})));
+  }
+  axLine([-8,0,0],[8,0,0],0xffe84d,0.5);
+  axLine([0,-3.5,0],[0,3.5,0],0x00d4ff,0.3);
+  axLine([0,0,-3.5],[0,0,3.5],0xff2d78,0.3);
+
+  var N=250,L=14;
+  var showE=true,showB=true;
+
+  var ePos=new Float32Array(N*3);
+  var eGeo=new THREE.BufferGeometry();
+  eGeo.setAttribute('position',new THREE.BufferAttribute(ePos,3));
+  var eLine=new THREE.Line(eGeo,new THREE.LineBasicMaterial({color:0x00d4ff}));
+  scene.add(eLine);
+
+  var bPos=new Float32Array(N*3);
+  var bGeo=new THREE.BufferGeometry();
+  bGeo.setAttribute('position',new THREE.BufferAttribute(bPos,3));
+  var bLine=new THREE.Line(bGeo,new THREE.LineBasicMaterial({color:0xff2d78}));
+  scene.add(bLine);
+
+  var nA=22,eArrows=[],bArrows=[];
+  for(var i=0;i<nA;i++){
+    var xp=-L/2+i*(L/(nA-1));
+    var eg=new THREE.CylinderGeometry(0.03,0.03,1,5,1);
+    var em=new THREE.Mesh(eg,new THREE.MeshBasicMaterial({color:0x00d4ff,transparent:true,opacity:0.6}));
+    em.position.x=xp;scene.add(em);eArrows.push({mesh:em,x:xp});
+    var bg=new THREE.CylinderGeometry(0.03,0.03,1,5,1);
+    var bm=new THREE.Mesh(bg,new THREE.MeshBasicMaterial({color:0xff2d78,transparent:true,opacity:0.6}));
+    bm.position.x=xp;bm.rotation.x=Math.PI/2;scene.add(bm);bArrows.push({mesh:bm,x:xp});
+  }
+
+  var drag=false,px=0,py=0,theta=0.45,phi=0.42,radius=13;
+  canvas.addEventListener('mousedown',function(e){drag=true;px=e.clientX;py=e.clientY},{passive:true});
+  window.addEventListener('mouseup',function(){drag=false});
+  window.addEventListener('mousemove',function(e){
+    if(!drag)return;
+    theta-=(e.clientX-px)*0.013;
+    phi=Math.max(0.08,Math.min(1.45,(e.clientY-py)*0.013+phi));
+    px=e.clientX;py=e.clientY;
+  });
+  canvas.addEventListener('touchstart',function(e){drag=true;px=e.touches[0].clientX;py=e.touches[0].clientY},{passive:true});
+  canvas.addEventListener('touchend',function(){drag=false},{passive:true});
+  canvas.addEventListener('touchmove',function(e){
+    if(!drag)return;
+    theta-=(e.touches[0].clientX-px)*0.013;
+    phi=Math.max(0.08,Math.min(1.45,(e.touches[0].clientY-py)*0.013+phi));
+    px=e.touches[0].clientX;py=e.touches[0].clientY;
+  },{passive:true});
+  canvas.addEventListener('wheel',function(e){radius=Math.max(5,Math.min(28,radius+e.deltaY*0.025));},{passive:true});
+
+  var playing=true,t=0;
+  var AMP=2.2,K=1.1,OM=1.8;
+
+  function tick(){
+    requestAnimationFrame(tick);
+    if(playing)t+=0.028;
+    camera.position.set(
+      radius*Math.sin(theta)*Math.cos(phi),
+      radius*Math.sin(phi),
+      radius*Math.cos(theta)*Math.cos(phi)
+    );
+    camera.lookAt(0,0,0);
+    for(var i=0;i<N;i++){
+      var x=-L/2+i*(L/(N-1));
+      ePos[i*3]=x;ePos[i*3+1]=showE?AMP*Math.sin(K*x-OM*t):0;ePos[i*3+2]=0;
+      bPos[i*3]=x;bPos[i*3+1]=0;bPos[i*3+2]=showB?AMP*Math.sin(K*x-OM*t):0;
+    }
+    eGeo.attributes.position.needsUpdate=true;
+    bGeo.attributes.position.needsUpdate=true;
+    eLine.visible=showE;bLine.visible=showB;
+    eArrows.forEach(function(a){
+      var v=showE?AMP*Math.sin(K*a.x-OM*t):0;
+      a.mesh.scale.y=Math.max(Math.abs(v),0.01);
+      a.mesh.position.y=v/2;a.mesh.position.z=0;
+      a.mesh.visible=showE;
+    });
+    bArrows.forEach(function(a){
+      var v=showB?AMP*Math.sin(K*a.x-OM*t):0;
+      a.mesh.scale.y=Math.max(Math.abs(v),0.01);
+      a.mesh.position.z=v/2;a.mesh.position.y=0;
+      a.mesh.visible=showB;
+    });
+    renderer.render(scene,camera);
+  }
+  tick();
+
+  new ResizeObserver(function(){
+    var nW=wrap.clientWidth;
+    renderer.setSize(nW,H);
+    camera.aspect=nW/H;
+    camera.updateProjectionMatrix();
+  }).observe(wrap);
+
+  window.w3Toggle=function(){playing=!playing;document.getElementById('btn-play').textContent=playing?'⏸ Pause':'▶ Play'};
+  window.w3ToggleE=function(){showE=!showE;var b=document.getElementById('btn-e');b.textContent='E-Field '+(showE?'ON':'OFF');b.className=showE?'w3btn on':'w3btn'};
+  window.w3ToggleB=function(){showB=!showB;var b=document.getElementById('btn-b');b.textContent='B-Field '+(showB?'ON':'OFF');b.className=showB?'w3btn on-b':'w3btn'};
+  window.w3Reset=function(){theta=0.45;phi=0.42;radius=13};
+});
+</script>
+</body>
+</html>
